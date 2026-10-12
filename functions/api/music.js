@@ -1,3 +1,4 @@
+
 import { createClient } from "@supabase/supabase-js";
 
 const HEADERS = {
@@ -28,7 +29,9 @@ function database(env) {
     env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!url || !key) {
-    throw new Error("Missing Supabase environment variables.");
+    throw new Error(
+      "Missing Supabase environment variables."
+    );
   }
 
   return createClient(url, key, {
@@ -40,7 +43,9 @@ function database(env) {
 }
 
 function makeRoomCode() {
-  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  const bytes = crypto.getRandomValues(
+    new Uint8Array(16)
+  );
 
   return Array.from(
     bytes,
@@ -49,7 +54,9 @@ function makeRoomCode() {
 }
 
 function validateTrack(track) {
-  if (!track || typeof track !== "object") return null;
+  if (!track || typeof track !== "object") {
+    return null;
+  }
 
   const trackId = Number(track.trackId);
   const trackName = clean(track.trackName);
@@ -106,7 +113,9 @@ function validateTrack(track) {
 }
 
 async function findRoom(db, code) {
-  if (!VALID_CODE.test(code)) return null;
+  if (!VALID_CODE.test(code)) {
+    return null;
+  }
 
   const { data, error } = await db
     .from("music_rooms")
@@ -114,34 +123,51 @@ async function findRoom(db, code) {
     .eq("room_code", code)
     .maybeSingle();
 
-  if (error) throw error;
+  if (error) {
+    throw error;
+  }
 
   return data || null;
 }
 
 async function searchSongs(term) {
   const query = clean(term, 100);
-  if (!query) return [];
 
-  const url = new URL("https://itunes.apple.com/search");
+  if (!query) {
+    return [];
+  }
+
+  const url = new URL(
+    "https://itunes.apple.com/search"
+  );
+
   url.searchParams.set("term", query);
   url.searchParams.set("entity", "song");
   url.searchParams.set("limit", "20");
 
-  const result = await fetch(url);
+  const result = await fetch(url, {
+    headers: {
+      Accept: "application/json"
+    }
+  });
 
   if (!result.ok) {
-    throw new Error("Song search is unavailable.");
+    throw new Error(
+      `iTunes search failed with HTTP ${result.status}.`
+    );
   }
 
   const data = await result.json();
 
   return (data.results || [])
-    .filter(song => song.previewUrl)
+    .filter(song =>
+      song.previewUrl &&
+      Number.isSafeInteger(Number(song.trackId))
+    )
     .map(song => ({
-      trackId: song.trackId,
-      trackName: song.trackName,
-      artistName: song.artistName,
+      trackId: Number(song.trackId),
+      trackName: song.trackName || "",
+      artistName: song.artistName || "",
       albumName: song.collectionName || "",
       previewUrl: song.previewUrl,
       artworkUrl: song.artworkUrl100 || "",
@@ -171,16 +197,22 @@ export async function onRequest(context) {
   }
 
   try {
-    const db = database(env);
     const action = clean(body.action, 30);
 
+    // Search does not require Supabase.
     if (action === "search") {
       const tracks = await searchSongs(
         body.query || body.term || ""
       );
 
-      return response(200, { ok: true, tracks });
+      return response(200, {
+        ok: true,
+        tracks
+      });
     }
+
+    // All remaining actions require Supabase.
+    const db = database(env);
 
     if (action === "createRoom") {
       for (let i = 0; i < 3; i++) {
@@ -203,7 +235,9 @@ export async function onRequest(context) {
           });
         }
 
-        if (error.code !== "23505") throw error;
+        if (error.code !== "23505") {
+          throw error;
+        }
       }
 
       throw new Error("Could not create a room.");
@@ -242,9 +276,13 @@ export async function onRequest(context) {
         .from("music_queue")
         .select("*")
         .eq("room_code", code)
-        .order("position", { ascending: true });
+        .order("position", {
+          ascending: true
+        });
 
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
 
       return response(200, {
         ok: true,
@@ -263,30 +301,42 @@ export async function onRequest(context) {
         });
       }
 
-      const { data: last, error: lastError } = await db
-        .from("music_queue")
-        .select("position")
-        .eq("room_code", code)
-        .order("position", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      const { data: last, error: lastError } =
+        await db
+          .from("music_queue")
+          .select("position")
+          .eq("room_code", code)
+          .order("position", {
+            ascending: false
+          })
+          .limit(1)
+          .maybeSingle();
 
-      if (lastError) throw lastError;
+      if (lastError) {
+        throw lastError;
+      }
 
       const { data, error } = await db
         .from("music_queue")
         .insert({
           room_code: code,
           track,
-          position: last ? Number(last.position) + 1 : 1,
+          position: last
+            ? Number(last.position) + 1
+            : 1,
           added_at: new Date().toISOString()
         })
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
 
-      return response(200, { ok: true, item: data });
+      return response(200, {
+        ok: true,
+        item: data
+      });
     }
 
     if (action === "setPlayback") {
@@ -298,7 +348,9 @@ export async function onRequest(context) {
         if (body.currentTrack === null) {
           updates.current_track = null;
         } else {
-          const track = validateTrack(body.currentTrack);
+          const track = validateTrack(
+            body.currentTrack
+          );
 
           if (!track) {
             return response(400, {
@@ -323,9 +375,14 @@ export async function onRequest(context) {
       }
 
       if ("positionSeconds" in body) {
-        const position = Number(body.positionSeconds);
+        const position = Number(
+          body.positionSeconds
+        );
 
-        if (!Number.isFinite(position) || position < 0) {
+        if (
+          !Number.isFinite(position) ||
+          position < 0
+        ) {
           return response(400, {
             ok: false,
             error: "Invalid playback position."
@@ -342,9 +399,14 @@ export async function onRequest(context) {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
 
-      return response(200, { ok: true, room: data });
+      return response(200, {
+        ok: true,
+        room: data
+      });
     }
 
     return response(400, {
@@ -352,12 +414,16 @@ export async function onRequest(context) {
       error: "Unknown action."
     });
   } catch (error) {
-    console.error("Our Music error:", error.message);
+    // Detailed errors stay in server logs.
+    console.error("Our Music error:", {
+      message: error?.message || "Unknown error",
+      action: clean(body?.action, 30)
+    });
 
     return response(500, {
       ok: false,
-      error: "Server error. Check Cloudflare and Supabase settings."
+      error:
+        "Server error. Check Cloudflare and Supabase settings."
     });
   }
 }
-  
