@@ -9,6 +9,11 @@ const HEADERS = {
 const ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const VALID_CODE = /^[A-HJ-NP-Z2-9]{16}$/;
 
+const AUDIUS_HOSTS = [
+  "https://api.audius.co/v1",
+  "https://discoveryprovider.audius.co/v1"
+];
+
 function response(status, data) {
   return new Response(JSON.stringify(data), {
     status,
@@ -29,9 +34,7 @@ function database(env) {
     env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!url || !key) {
-    throw new Error(
-      "Missing Supabase environment variables."
-    );
+    throw new Error("Missing Supabase environment variables.");
   }
 
   return createClient(url, key, {
@@ -43,9 +46,7 @@ function database(env) {
 }
 
 function makeRoomCode() {
-  const bytes = crypto.getRandomValues(
-    new Uint8Array(16)
-  );
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
 
   return Array.from(
     bytes,
@@ -54,31 +55,29 @@ function makeRoomCode() {
 }
 
 function validateTrack(track) {
-  if (!track || typeof track !== "object") {
-    return null;
-  }
+  if (!track || typeof track !== "object") return null;
 
-  const trackId = Number(track.trackId);
+  const trackId = clean(String(track.trackId || ""), 100);
   const trackName = clean(track.trackName);
   const artistName = clean(track.artistName);
-  const previewUrl = clean(track.previewUrl, 1000);
-  const artworkUrl = clean(track.artworkUrl, 1000);
+  const previewUrl = clean(track.previewUrl, 1500);
+  const artworkUrl = clean(track.artworkUrl, 1500);
 
-  if (
-    !Number.isSafeInteger(trackId) ||
-    trackId <= 0 ||
-    !trackName ||
-    !artistName
-  ) {
+  if (!trackId || !trackName || !artistName) {
     return null;
   }
 
+  // Only accept Audius stream URLs.
   try {
-    const preview = new URL(previewUrl);
+    const url = new URL(previewUrl);
 
     if (
-      preview.protocol !== "https:" ||
-      preview.hostname !== "audio-ssl.itunes.apple.com"
+      url.protocol !== "https:" ||
+      ![
+        "api.audius.co",
+        "discoveryprovider.audius.co"
+      ].includes(url.hostname) ||
+      !url.pathname.endsWith("/stream")
     ) {
       return null;
     }
@@ -90,12 +89,7 @@ function validateTrack(track) {
     try {
       const artwork = new URL(artworkUrl);
 
-      if (
-        artwork.protocol !== "https:" ||
-        !artwork.hostname.endsWith(".mzstatic.com")
-      ) {
-        return null;
-      }
+      if (artwork.protocol !== "https:") return null;
     } catch {
       return null;
     }
@@ -108,14 +102,12 @@ function validateTrack(track) {
     albumName: clean(track.albumName),
     previewUrl,
     artworkUrl,
-    durationMs: Number(track.durationMs) || 0
+    durationMs: Math.max(0, Number(track.durationMs) || 0)
   };
 }
 
 async function findRoom(db, code) {
-  if (!VALID_CODE.test(code)) {
-    return null;
-  }
+  if (!VALID_CODE.test(code)) return null;
 
   const { data, error } = await db
     .from("music_rooms")
@@ -123,56 +115,84 @@ async function findRoom(db, code) {
     .eq("room_code", code)
     .maybeSingle();
 
-  if (error) {
-    throw error;
-  }
+  if (error) throw error;
 
   return data || null;
+}
+
+function getArtwork(track) {
+  const artwork = track.artwork || {};
+
+  if (typeof artwork === "string") {
+    return artwork;
+  }
+
+  return (
+    artwork["480x480"] ||
+    artwork["150x150"] ||
+    artwork["1000x1000"] ||
+    ""
+  );
 }
 
 async function searchSongs(term) {
   const query = clean(term, 100);
 
-  if (!query) {
-    return [];
-  }
+  if (!query) return [];
 
-  const url = new URL(
-    "https://itunes.apple.com/search"
-  );
+  let lastError;
 
-  url.searchParams.set("term", query);
-  url.searchParams.set("entity", "song");
-  url.searchParams.set("limit", "20");
+  for (const host of AUDIUS_HOSTS) {
+    try {
+      const url = new URL(`${host}/tracks/search`);
 
-  const result = await fetch(url, {
-    headers: {
-      Accept: "application/json"
+      url.searchParams.set("query", query);
+      url.searchParams.set("limit", "20");
+      url.searchParams.set("app_name", "OurMusic");
+
+      const result = await fetch(url.toString(), {
+        headers: { Accept: "application/json" }
+      });
+
+      if (!result.ok) {
+        lastError = new Error(
+          `Audius returned HTTP ${result.status}.`
+        );
+        continue;
+      }
+
+      const payload = await result.json();
+
+      if (!Array.isArray(payload.data)) {
+        lastError = new Error("Invalid Audius search response.");
+        continue;
+      }
+
+      return payload.data
+        .filter(track => track && track.id && track.title)
+        .map(track => {
+          const streamUrl =
+            `${host}/tracks/${encodeURIComponent(String(track.id))}/stream` +
+            `?app_name=OurMusic`;
+
+          return {
+            trackId: String(track.id),
+            trackName: track.title || "Unknown track",
+            artistName: track.user?.name || "Unknown artist",
+            albumName: track.album_title || "",
+            previewUrl: streamUrl,
+            artworkUrl: getArtwork(track),
+            durationMs: Math.max(0, Number(track.duration) || 0) * 1000
+          };
+        });
+    } catch (error) {
+      lastError = error;
     }
-  });
-
-  if (!result.ok) {
-    throw new Error(
-      `iTunes search failed with HTTP ${result.status}.`
-    );
   }
 
-  const data = await result.json();
-
-  return (data.results || [])
-    .filter(song =>
-      song.previewUrl &&
-      Number.isSafeInteger(Number(song.trackId))
-    )
-    .map(song => ({
-      trackId: Number(song.trackId),
-      trackName: song.trackName || "",
-      artistName: song.artistName || "",
-      albumName: song.collectionName || "",
-      previewUrl: song.previewUrl,
-      artworkUrl: song.artworkUrl100 || "",
-      durationMs: song.trackTimeMillis || 0
-    }));
+  throw new Error(
+    `Audius search failed: ${lastError?.message || "Unknown error"}`
+  );
 }
 
 export async function onRequest(context) {
@@ -196,10 +216,10 @@ export async function onRequest(context) {
     });
   }
 
-  try {
-    const action = clean(body.action, 30);
+  const action = clean(body.action, 30);
 
-    // Search does not require Supabase.
+  try {
+    // Audius search does not require Supabase.
     if (action === "search") {
       const tracks = await searchSongs(
         body.query || body.term || ""
@@ -211,11 +231,11 @@ export async function onRequest(context) {
       });
     }
 
-    // All remaining actions require Supabase.
+    // Room and queue operations still use Supabase.
     const db = database(env);
 
     if (action === "createRoom") {
-      for (let i = 0; i < 3; i++) {
+      for (let attempt = 0; attempt < 3; attempt++) {
         const code = makeRoomCode();
 
         const { error } = await db
@@ -235,12 +255,10 @@ export async function onRequest(context) {
           });
         }
 
-        if (error.code !== "23505") {
-          throw error;
-        }
+        if (error.code !== "23505") throw error;
       }
 
-      throw new Error("Could not create a room.");
+      throw new Error("Could not create a unique room.");
     }
 
     const code = clean(
@@ -276,13 +294,9 @@ export async function onRequest(context) {
         .from("music_queue")
         .select("*")
         .eq("room_code", code)
-        .order("position", {
-          ascending: true
-        });
+        .order("position", { ascending: true });
 
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
 
       return response(200, {
         ok: true,
@@ -297,41 +311,32 @@ export async function onRequest(context) {
       if (!track) {
         return response(400, {
           ok: false,
-          error: "Invalid song or preview."
+          error: "Invalid Audius track or stream URL."
         });
       }
 
-      const { data: last, error: lastError } =
-        await db
-          .from("music_queue")
-          .select("position")
-          .eq("room_code", code)
-          .order("position", {
-            ascending: false
-          })
-          .limit(1)
-          .maybeSingle();
+      const { data: last, error: lastError } = await db
+        .from("music_queue")
+        .select("position")
+        .eq("room_code", code)
+        .order("position", { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-      if (lastError) {
-        throw lastError;
-      }
+      if (lastError) throw lastError;
 
       const { data, error } = await db
         .from("music_queue")
         .insert({
           room_code: code,
           track,
-          position: last
-            ? Number(last.position) + 1
-            : 1,
+          position: last ? Number(last.position) + 1 : 1,
           added_at: new Date().toISOString()
         })
         .select()
         .single();
 
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
 
       return response(200, {
         ok: true,
@@ -348,14 +353,12 @@ export async function onRequest(context) {
         if (body.currentTrack === null) {
           updates.current_track = null;
         } else {
-          const track = validateTrack(
-            body.currentTrack
-          );
+          const track = validateTrack(body.currentTrack);
 
           if (!track) {
             return response(400, {
               ok: false,
-              error: "Invalid song."
+              error: "Invalid Audius track."
             });
           }
 
@@ -375,14 +378,9 @@ export async function onRequest(context) {
       }
 
       if ("positionSeconds" in body) {
-        const position = Number(
-          body.positionSeconds
-        );
+        const position = Number(body.positionSeconds);
 
-        if (
-          !Number.isFinite(position) ||
-          position < 0
-        ) {
+        if (!Number.isFinite(position) || position < 0) {
           return response(400, {
             ok: false,
             error: "Invalid playback position."
@@ -399,9 +397,7 @@ export async function onRequest(context) {
         .select()
         .single();
 
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
 
       return response(200, {
         ok: true,
@@ -414,16 +410,16 @@ export async function onRequest(context) {
       error: "Unknown action."
     });
   } catch (error) {
-    // Detailed errors stay in server logs.
     console.error("Our Music error:", {
-      message: error?.message || "Unknown error",
-      action: clean(body?.action, 30)
+      action,
+      message: error?.message || "Unknown error"
     });
 
     return response(500, {
       ok: false,
-      error:
-        "Server error. Check Cloudflare and Supabase settings."
+      error: action === "search"
+        ? "Audius search failed. Check the Cloudflare function logs."
+        : "Server error. Check Cloudflare and Supabase settings."
     });
   }
 }
