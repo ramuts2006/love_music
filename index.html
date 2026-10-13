@@ -1,579 +1,1255 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#171329">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#100d18">
+  <meta name="description" content="A private shared music room for two hearts.">
   <title>Our Music ♡</title>
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/icon.svg" type="image/svg+xml">
+
   <style>
     :root {
       color-scheme: dark;
-      --bg: #100e1b;
-      --panel: #1d192c;
+      --bg: #100d18;
+      --panel: #191423;
+      --panel2: #211a2e;
       --text: #fff8ff;
-      --muted: #bcb4cb;
-      --pink: #ff78b7;
-      --purple: #a78bfa;
-      --border: #39314e;
+      --muted: #aaa0b9;
+      --pink: #ff83bc;
+      --purple: #a58bff;
+      --border: rgba(255,255,255,.09);
+      --radius: 22px;
     }
 
     * { box-sizing: border-box; }
 
     body {
       margin: 0;
-      background: radial-gradient(ellipse at top, #302040, var(--bg) 65%);
-      color: var(--text);
-      font-family: system-ui, sans-serif;
       min-height: 100vh;
+      background:
+        radial-gradient(ellipse at 0% 0%, rgba(165,139,255,.15), transparent 38%),
+        radial-gradient(ellipse at 100% 20%, rgba(255,131,188,.10), transparent 35%),
+        var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      -webkit-font-smoothing: antialiased;
     }
 
-    main {
-      max-width: 760px;
-      margin: auto;
-      padding: 22px 15px 50px;
+    button, input { font: inherit; }
+    button { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+    button:focus-visible, input:focus-visible {
+      outline: 2px solid var(--pink);
+      outline-offset: 3px;
     }
 
-    header { text-align: center; padding: 20px 0; }
+    .app {
+      width: min(100% - 28px, 980px);
+      margin: 0 auto;
+      padding: max(20px, env(safe-area-inset-top)) 0
+        max(130px, env(safe-area-inset-bottom));
+    }
 
-    h1 {
-      font-size: clamp(2rem, 8vw, 3.1rem);
-      margin: 0;
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 26px;
+    }
+
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand-icon {
+      width: 46px;
+      height: 46px;
+      border-radius: 16px;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, var(--pink), var(--purple));
+      color: #241329;
+      font-size: 25px;
+      box-shadow: 0 8px 28px #ff83bc30;
+    }
+
+    .brand h1 { margin: 0; font-size: 20px; letter-spacing: -.5px; }
+    .brand p { margin: 3px 0 0; color: var(--muted); font-size: 12px; }
+
+    .connection {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #8d8499;
+    }
+    .dot.online { background: #79e5b1; box-shadow: 0 0 10px #79e5b166; }
+
+    .hero {
+      position: relative;
+      overflow: hidden;
+      padding: 25px 22px;
+      border: 1px solid var(--border);
+      border-radius: 28px;
+      background: linear-gradient(135deg, #2b203a, #1a1425 65%);
+      margin-bottom: 18px;
+    }
+
+    .hero:after {
+      content: "♫";
+      position: absolute;
+      right: 18px;
+      bottom: -46px;
+      font-size: 170px;
+      line-height: 1;
+      color: #ffffff08;
+      pointer-events: none;
+    }
+
+    .eyebrow {
+      color: var(--pink);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    .hero h2 {
+      margin: 10px 0;
+      max-width: 520px;
+      font-size: clamp(27px, 7vw, 43px);
+      line-height: 1.12;
       letter-spacing: -1.5px;
     }
 
-    h1 span { color: var(--pink); }
+    .gradient-text {
+      background: linear-gradient(90deg, var(--pink), var(--purple));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
 
-    .subtitle { color: var(--muted); margin-top: 8px; }
+    .hero p {
+      max-width: 420px;
+      color: #c5bbd1;
+      font-size: 14px;
+      line-height: 1.65;
+      margin: 0;
+    }
 
-    .panel {
-      background: rgba(29, 25, 44, .94);
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 18px;
+    }
+
+    .card {
+      min-width: 0;
+      padding: 20px;
+      background: rgba(25,20,35,.94);
       border: 1px solid var(--border);
-      border-radius: 19px;
-      padding: 17px;
-      margin: 15px 0;
+      border-radius: var(--radius);
     }
 
-    h2 { font-size: 1.1rem; margin: 0 0 13px; }
-
-    input, button {
-      font: inherit;
-      border-radius: 12px;
-      padding: 12px;
+    .card-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 16px;
     }
 
+    .card-heading h3 { margin: 0; font-size: 17px; }
+    .subtext { color: var(--muted); font-size: 12px; line-height: 1.5; }
+    .field-label { display: block; margin: 14px 0 8px; color: #d8cfe3; font-size: 12px; }
+
+    .input-row { display: flex; gap: 8px; }
     input {
       min-width: 0;
       width: 100%;
-      background: #100e1b;
+      padding: 14px;
+      border-radius: 14px;
       border: 1px solid var(--border);
-      color: white;
+      background: #100d18;
+      color: var(--text);
+      outline: none;
     }
+    input::placeholder { color: #746b81; }
 
-    button {
+    .btn {
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      gap: 7px;
+      min-height: 44px;
+      padding: 11px 15px;
       border: 0;
-      background: var(--pink);
-      color: #241020;
-      font-weight: 700;
-      cursor: pointer;
+      border-radius: 14px;
+      font-weight: 750;
+      font-size: 13px;
+      color: #25152c;
+      background: linear-gradient(120deg, var(--pink), var(--purple));
+      transition: transform .15s, opacity .15s;
     }
-
-    button.secondary {
-      background: #37304b;
-      color: white;
+    .btn:active { transform: scale(.97); }
+    .btn:disabled { opacity: .45; cursor: not-allowed; }
+    .btn.secondary {
+      color: var(--text);
+      background: #2b2338;
       border: 1px solid var(--border);
     }
+    .btn.ghost { color: #dcd1e9; background: transparent; border: 1px solid var(--border); }
+    .btn.full { width: 100%; margin-top: 10px; }
 
-    button:disabled { opacity: .5; }
-
-    .row { display: flex; gap: 8px; }
-    .row > * { flex: 1; }
-
-    .status {
-      color: var(--muted);
-      font-size: .92rem;
-      overflow-wrap: anywhere;
-      margin: 10px 0 0;
+    .room-status {
+      margin-top: 14px;
+      padding: 13px;
+      border: 1px solid var(--border);
+      background: #100d18;
+      border-radius: 14px;
+      display: none;
     }
-
+    .room-status.visible { display: block; }
     .room-code {
-      color: var(--pink);
-      font-size: 1.4rem;
-      font-weight: 800;
-      letter-spacing: 2px;
-      overflow-wrap: anywhere;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-top: 8px;
     }
+    .room-code strong { font-size: 22px; letter-spacing: 3px; overflow-wrap: anywhere; }
 
+    .search-row { display: flex; gap: 8px; }
+    .search-row input { flex: 1; }
+    .section-gap { margin-top: 18px; }
+
+    .results, .queue { display: grid; gap: 10px; }
     .song {
       display: flex;
       align-items: center;
       gap: 12px;
-      padding: 11px 0;
-      border-bottom: 1px solid var(--border);
+      min-width: 0;
+      padding: 10px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: #100d187a;
+    }
+    .artwork {
+      width: 54px;
+      height: 54px;
+      flex: 0 0 54px;
+      object-fit: cover;
+      border-radius: 12px;
+      background: #2b2338;
+    }
+    .song-info { flex: 1; min-width: 0; }
+    .song-title {
+      font-size: 13px;
+      font-weight: 750;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .song-artist {
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 12px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .song .btn { min-height: 38px; padding: 8px 11px; flex-shrink: 0; }
+
+    .empty {
+      padding: 22px 12px;
+      text-align: center;
+      border: 1px dashed #ffffff1b;
+      border-radius: 16px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
     }
 
-    .song:last-child { border-bottom: 0; }
+    .now-playing {
+      overflow: hidden;
+      text-align: center;
+      background:
+        radial-gradient(ellipse at 50% 0%, #a58bff18, transparent 65%),
+        rgba(25,20,35,.96);
+    }
 
-    .cover {
+    .cover-wrap {
+      width: min(66vw, 250px);
+      aspect-ratio: 1;
+      margin: 10px auto 22px;
+      padding: 7px;
+      border-radius: 26px;
+      background: linear-gradient(135deg, #ff83bc, #a58bff);
+      box-shadow: 0 18px 55px #0005;
+    }
+    .cover-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 20px;
+      background: #2b2338;
+    }
+    .track-name { margin: 0; font-size: 20px; overflow-wrap: anywhere; }
+    .artist-name { margin: 8px 0 18px; color: var(--muted); font-size: 13px; }
+
+    .progress-wrap { margin: 20px 0 8px; }
+    input[type="range"] {
+      padding: 0;
+      height: 5px;
+      border: 0;
+      border-radius: 10px;
+      accent-color: var(--pink);
+      background: #43364f;
+    }
+    .times {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+    .player-controls {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 17px;
+      margin: 18px 0 12px;
+    }
+    .icon-btn {
+      width: 44px;
+      height: 44px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      color: var(--text);
+      background: #2b2338;
+      font-size: 17px;
+    }
+    .icon-btn.play {
       width: 58px;
       height: 58px;
-      border-radius: 10px;
-      object-fit: cover;
-      background: #37304b;
-      flex-shrink: 0;
+      color: #25152c;
+      border: 0;
+      background: linear-gradient(135deg, var(--pink), var(--purple));
+      font-size: 22px;
     }
 
-    .song-info { flex: 1; min-width: 0; }
+    .volume-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 16px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .volume-row input { flex: 1; }
 
-    .song-title {
-      font-weight: 700;
+    .status-message {
+      margin-top: 12px;
+      padding: 11px 13px;
+      border-radius: 12px;
+      background: #100d18;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
       overflow-wrap: anywhere;
     }
+    .status-message.error { color: #ff9fae; }
+    .status-message.success { color: #91efbd; }
 
-    .song-artist {
-      color: var(--muted);
-      font-size: .9rem;
-      margin-top: 3px;
+    .footer {
+      text-align: center;
+      color: #766d82;
+      font-size: 11px;
+      margin-top: 25px;
     }
 
-    .song button { padding: 9px 12px; }
+    .mini-player {
+      position: fixed;
+      z-index: 10;
+      left: 12px;
+      right: 12px;
+      bottom: max(12px, env(safe-area-inset-bottom));
+      max-width: 680px;
+      margin: 0 auto;
+      display: none;
+      align-items: center;
+      gap: 10px;
+      padding: 10px;
+      border: 1px solid #ffffff1c;
+      border-radius: 18px;
+      background: #191423ed;
+      backdrop-filter: blur(18px);
+      box-shadow: 0 10px 40px #0006;
+    }
+    .mini-player.visible { display: flex; }
+    .mini-player .artwork { width: 42px; height: 42px; flex-basis: 42px; }
+    .mini-player .song-info { text-align: left; }
+    .mini-player .icon-btn { flex-shrink: 0; width: 40px; height: 40px; }
 
-    .empty { color: var(--muted); font-size: .92rem; }
+    @media (min-width: 760px) {
+      .app { padding-top: 30px; }
+      .layout { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; }
+      .hero { padding: 34px; }
+      .hero h2 { font-size: 43px; }
+      .now-playing { position: sticky; top: 18px; }
+      .cover-wrap { width: min(100%, 250px); }
+    }
 
-    audio { width: 100%; margin-top: 10px; }
+    @media (max-width: 390px) {
+      .app { width: min(100% - 20px, 980px); }
+      .card { padding: 15px; }
+      .brand h1 { font-size: 18px; }
+      .connection { font-size: 11px; }
+      .song { gap: 8px; }
+      .artwork { width: 46px; height: 46px; flex-basis: 46px; }
+      .song .btn { padding: 8px; }
+    }
 
-    .tiny { font-size: .8rem; color: var(--muted); line-height: 1.5; }
-
-    footer {
-      text-align: center;
-      color: var(--muted);
-      font-size: .8rem;
-      padding-top: 12px;
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; }
     }
   </style>
 </head>
+
 <body>
-<main>
-  <header>
-    <h1>Our <span>Music ♡</span></h1>
-    <div class="subtitle">One little room for two hearts, miles apart.</div>
-  </header>
-
-  <section class="panel">
-    <h2>♡ Our private room</h2>
-    <div class="row">
-      <button id="createBtn">Create room</button>
-      <button id="copyBtn" class="secondary" disabled>Copy code</button>
-    </div>
-    <div style="height:10px"></div>
-    <div class="row">
-      <input id="roomInput" maxlength="16" placeholder="Enter room code" autocomplete="off">
-      <button id="joinBtn">Join</button>
-    </div>
-    <p id="roomDisplay" class="room-code"></p>
-    <p id="roomStatus" class="status">Create a room or enter a room code.</p>
-  </section>
-
-  <section class="panel">
-    <h2>♫ Find a song</h2>
-    <form id="searchForm" class="row">
-      <input id="searchInput" placeholder="Search song or artist…" maxlength="100">
-      <button id="searchBtn">Search</button>
-    </form>
-    <div id="searchResults" style="margin-top:12px">
-      <p class="empty">Search for a song to get started.</p>
-    </div>
-  </section>
-
-  <section class="panel">
-    <h2>♡ Now playing</h2>
-    <div id="nowPlaying" class="empty">Choose a song from your shared queue.</div>
-    <audio id="player" controls preload="none"></audio>
-    <p class="tiny">Previews are usually about 30 seconds. Playback on another phone may require tapping Play there first.</p>
-  </section>
-
-  <section class="panel">
-    <h2>♫ Our shared queue</h2>
-    <div id="queueList"><p class="empty">Join a room to see its queue.</p></div>
-  </section>
-
-  <footer>Made with ♡ for two people, wherever they are.</footer>
-</main>
-
-<script>
-(() => {
-  const $ = id => document.getElementById(id);
-
-  let roomCode = "";
-  let queue = [];
-  let currentTrackId = null;
-  let lastRemotePosition = 0;
-  let lastRemotePlaying = false;
-  let lastPositionSent = 0;
-  let applyingRemoteState = false;
-  let pollBusy = false;
-
-  const player = $("player");
-
-  async function api(action, extra = {}) {
-    const response = await fetch("/api/music", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action,
-        ...(roomCode ? { roomCode } : {}),
-        ...extra
-      })
-    });
-
-    let data;
-
-    try {
-      data = await response.json();
-    } catch {
-      throw new Error("The server returned an unreadable response.");
-    }
-
-    if (!response.ok || !data.ok) {
-      throw new Error(data.error || "Request failed.");
-    }
-
-    return data;
-  }
-
-  function status(message) {
-    $("roomStatus").textContent = message;
-  }
-
-  function escapeHtml(value) {
-    return String(value ?? "").replace(/[&<>"']/g, char => ({
-      "&": "&amp;",
-      "<": "&lt;",
-      ">": "&gt;",
-      '"': "&quot;",
-      "'": "&#39;"
-    })[char]);
-  }
-
-  function validArtwork(url) {
-    try {
-      const parsed = new URL(url);
-      return parsed.protocol === "https:" &&
-        parsed.hostname.endsWith(".mzstatic.com")
-        ? parsed.href : "";
-    } catch {
-      return "";
-    }
-  }
-
-  function songHtml(track, buttonText, buttonAction, index) {
-    const cover = validArtwork(track.artworkUrl);
-    return `
-      <div class="song">
-        <img class="cover"
-          src="${escapeHtml(cover)}"
-          alt=""
-          loading="lazy"
-          onerror="this.style.visibility='hidden'">
-        <div class="song-info">
-          <div class="song-title">${escapeHtml(track.trackName)}</div>
-          <div class="song-artist">${escapeHtml(track.artistName)}</div>
+  <main class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-icon">♫</div>
+        <div>
+          <h1>Our Music</h1>
+          <p>One room. Two hearts. Our songs.</p>
         </div>
-        <button class="secondary"
-          data-action="${buttonAction}"
-          data-index="${index}">${buttonText}</button>
-      </div>`;
-  }
+      </div>
+      <div class="connection">
+        <span id="connectionDot" class="dot"></span>
+        <span id="connectionText">Not connected</span>
+      </div>
+    </header>
 
-  function getTrackFromQueue(item) {
-    return item && item.track ? item.track : item;
-  }
+    <section class="hero">
+      <div class="eyebrow">A little place for us</div>
+      <h2>Our own world,<br><span class="gradient-text">one song at a time.</span></h2>
+      <p>Listen together, discover songs, and keep a shared playlist wherever you are.</p>
+    </section>
 
-  function renderQueue() {
-    const target = $("queueList");
+    <div class="layout">
+      <div class="left-column">
+        <section class="card">
+          <div class="card-heading">
+            <h3>♡ Our private room</h3>
+          </div>
+          <p class="subtext">Create a room and share its code with your person, or join using their code.</p>
 
-    if (!roomCode) {
-      target.innerHTML = '<p class="empty">Join a room first.</p>';
-      return;
+          <button id="createRoomBtn" class="btn full">＋ Create a new room</button>
+
+          <label class="field-label" for="roomCodeInput">Have a room code?</label>
+          <div class="input-row">
+            <input id="roomCodeInput" type="text" maxlength="32"
+              placeholder="Enter room code" autocomplete="off" autocapitalize="characters">
+            <button id="joinRoomBtn" class="btn secondary">Join</button>
+          </div>
+
+          <div id="roomStatus" class="room-status">
+            <div class="subtext">Your shared room code</div>
+            <div class="room-code">
+              <strong id="roomCodeDisplay">—</strong>
+              <button id="copyRoomBtn" class="btn secondary">Copy</button>
+            </div>
+            <div class="subtext" style="margin-top:8px">Share this code privately with your partner.</div>
+          </div>
+        </section>
+
+        <section class="card section-gap">
+          <div class="card-heading">
+            <h3>⌕ Find your next song</h3>
+          </div>
+          <form id="searchForm" class="search-row">
+            <input id="searchInput" type="search" placeholder="Song or artist name..."
+              autocomplete="off" aria-label="Search songs">
+            <button id="searchBtn" class="btn" type="submit">Search</button>
+          </form>
+          <div class="subtext" style="margin-top:9px">Search music and add tracks to your shared queue.</div>
+          <div id="searchMessage" class="status-message" hidden></div>
+          <div id="searchResults" class="results section-gap">
+            <div class="empty">Search for a song or artist to get started ♡</div>
+          </div>
+        </section>
+      </div>
+
+      <div class="right-column">
+        <section class="card now-playing">
+          <div class="card-heading">
+            <h3>Now playing</h3>
+            <span class="eyebrow" id="playingBadge">OUR MUSIC</span>
+          </div>
+
+          <div class="cover-wrap">
+            <img id="coverArt" src="/icon.svg" alt="Current song artwork">
+          </div>
+
+          <h2 id="trackName" class="track-name">Choose a song</h2>
+          <p id="artistName" class="artist-name">Your soundtrack starts here</p>
+
+          <audio id="audioPlayer" preload="metadata" playsinline></audio>
+
+          <div class="progress-wrap">
+            <input id="progressBar" type="range" min="0" max="100" value="0"
+              aria-label="Song progress">
+            <div class="times">
+              <span id="currentTime">0:00</span>
+              <span id="duration">0:00</span>
+            </div>
+          </div>
+
+          <div class="player-controls">
+            <button id="previousBtn" class="icon-btn" aria-label="Previous song" title="Previous">|◀</button>
+            <button id="playPauseBtn" class="icon-btn play" aria-label="Play" title="Play">▶</button>
+            <button id="nextBtn" class="icon-btn" aria-label="Next song" title="Next">▶|</button>
+          </div>
+
+          <div class="volume-row">
+            <span>Volume</span>
+            <input id="volumeBar" type="range" min="0" max="1" step="0.05" value="0.85"
+              aria-label="Volume">
+          </div>
+
+          <div id="mainMessage" class="status-message">Create or join a room to listen together.</div>
+        </section>
+
+        <section class="card section-gap">
+          <div class="card-heading">
+            <h3>♡ Our shared queue</h3>
+            <button id="refreshQueueBtn" class="btn ghost">Refresh</button>
+          </div>
+          <div id="queueList" class="queue">
+            <div class="empty">Your shared playlist will appear here.</div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <footer class="footer">Made with ♡ for the songs that bring us closer.</footer>
+  </main>
+
+  <div id="miniPlayer" class="mini-player">
+    <img id="miniArt" class="artwork" src="/icon.svg" alt="">
+    <div class="song-info">
+      <div id="miniTitle" class="song-title">Choose a song</div>
+      <div id="miniArtist" class="song-artist">Our Music</div>
+    </div>
+    <button id="miniPlayBtn" class="icon-btn" aria-label="Play or pause">▶</button>
+  </div>
+
+<!-- PART 2 CONTINUES DIRECTLY BELOW THIS LINE -->
+  
+  <script>
+    "use strict";
+
+    const $ = (id) => document.getElementById(id);
+    const audio = $("audioPlayer");
+
+    let roomCode = "";
+    let currentTrack = null;
+    let queueTracks = [];
+    let searchTracks = [];
+    let lastRemoteTrackId = "";
+    let isSeeking = false;
+    let pollTimer = null;
+    let currentPositionAtSync = 0;
+    let currentSyncTime = 0;
+    let remoteIsPlaying = false;
+    let lastUpdatedAt = "";
+    let lastQueueSignature = "";
+
+    function escapeHTML(value) {
+      return String(value ?? "").replace(/[&<>"']/g, char => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+      })[char]);
     }
 
-    if (!queue.length) {
-      target.innerHTML = '<p class="empty">Your shared queue is empty. Search for a song and add one.</p>';
-      return;
+    function formatTime(seconds) {
+      if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
+      const mins = Math.floor(seconds / 60);
+      const secs = Math.floor(seconds % 60);
+      return mins + ":" + String(secs).padStart(2, "0");
     }
 
-    target.innerHTML = queue.map((item, index) =>
-      songHtml(getTrackFromQueue(item), "Play", "play", index)
-    ).join("");
-  }
-
-  function renderNowPlaying(track) {
-    if (!track) {
-      $("nowPlaying").innerHTML =
-        '<p class="empty">Choose a song from your shared queue.</p>';
-      return;
+    function getTrackId(track) {
+      return String(track?.trackId ?? track?.id ?? "");
     }
 
-    const cover = validArtwork(track.artworkUrl);
-
-    $("nowPlaying").innerHTML = `
-      <div class="song">
-        ${cover ? `<img class="cover" src="${escapeHtml(cover)}" alt="">` : ""}
-        <div class="song-info">
-          <div class="song-title">${escapeHtml(track.trackName)}</div>
-          <div class="song-artist">${escapeHtml(track.artistName)}</div>
-        </div>
-      </div>`;
-  }
-
-  async function createRoom() {
-    try {
-      status("Creating your room…");
-      const data = await api("createRoom");
-
-      roomCode = data.roomCode;
-      $("roomInput").value = roomCode;
-      $("roomDisplay").textContent = roomCode;
-      $("copyBtn").disabled = false;
-
-      status("Room created! Share this code with your girlfriend.");
-      await refreshRoom();
-    } catch (error) {
-      status(error.message);
-    }
-  }
-
-  async function joinRoom() {
-    const code = $("roomInput").value.trim().toUpperCase();
-
-    if (!/^[A-HJ-NP-Z2-9]{16}$/.test(code)) {
-      status("Please enter the complete 16-character room code.");
-      return;
+    function getTrackTitle(track) {
+      return track?.trackName || track?.title || "Unknown song";
     }
 
-    try {
-      roomCode = code;
-      await api("joinRoom");
-      $("roomDisplay").textContent = roomCode;
-      $("copyBtn").disabled = false;
-      status("Joined room! Loading your shared queue…");
-      await refreshRoom();
-    } catch (error) {
-      roomCode = "";
-      $("roomDisplay").textContent = "";
-      $("copyBtn").disabled = true;
-      status(error.message);
-    }
-  }
-
-  async function searchSongs(event) {
-    event?.preventDefault();
-
-    const query = $("searchInput").value.trim();
-
-    if (!query) {
-      $("searchResults").innerHTML =
-        '<p class="empty">Type a song or artist name first.</p>';
-      return;
+    function getTrackArtist(track) {
+      return track?.artistName || track?.artist || "Unknown artist";
     }
 
-    $("searchResults").innerHTML =
-      '<p class="empty">Searching songs…</p>';
+    function getTrackArtwork(track) {
+      return track?.artworkUrl || track?.artwork || "/icon.svg";
+    }
 
-    try {
-      const data = await api("search", { query });
+    function setMessage(message, type = "") {
+      const element = $("mainMessage");
+      element.textContent = message;
+      element.className = "status-message" + (type ? " " + type : "");
+    }
 
-      if (!data.tracks.length) {
-        $("searchResults").innerHTML =
-          '<p class="empty">No songs with previews found. Try another search.</p>';
+    function setSearchMessage(message, type = "") {
+      const element = $("searchMessage");
+      element.textContent = message;
+      element.className = "status-message" + (type ? " " + type : "");
+      element.hidden = !message;
+    }
+
+    function setConnection(connected, text) {
+      $("connectionDot").classList.toggle("online", connected);
+      $("connectionText").textContent = text;
+    }
+
+    function setBusy(button, busy, busyText = "Please wait…") {
+      if (!button.dataset.originalText) {
+        button.dataset.originalText = button.textContent;
+      }
+      button.disabled = busy;
+      button.textContent = busy ? busyText : button.dataset.originalText;
+    }
+
+    async function api(action, payload = {}) {
+      const response = await fetch("/api/music", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action,
+          ...payload,
+          ...(roomCode ? { roomCode } : {})
+        })
+      });
+
+      let data;
+      try {
+        data = await response.json();
+      } catch {
+        throw new Error("The server returned an unreadable response.");
+      }
+
+      if (!response.ok || data?.error || data?.success === false) {
+        throw new Error(data?.error || data?.message || "Request failed. Please try again.");
+      }
+
+      return data;
+    }
+
+    function unwrap(data) {
+      return data?.data ?? data?.result ?? data;
+    }
+
+    function extractTracks(data) {
+      const result = unwrap(data);
+      if (Array.isArray(result)) return result;
+      if (Array.isArray(result?.tracks)) return result.tracks;
+      if (Array.isArray(result?.results)) return result.results;
+      if (Array.isArray(result?.data)) return result.data;
+      return [];
+    }
+
+    function normaliseTrack(track) {
+      if (!track || typeof track !== "object") return null;
+
+      return {
+        trackId: String(track.trackId ?? track.id ?? ""),
+        trackName: getTrackTitle(track),
+        artistName: getTrackArtist(track),
+        albumName: track.albumName || track.album || "",
+        previewUrl: track.previewUrl || track.streamUrl || "",
+        artworkUrl: getTrackArtwork(track),
+        durationMs: Number(track.durationMs ?? (track.duration ? track.duration * 1000 : 0))
+      };
+    }
+
+    function showRoom(code) {
+      roomCode = String(code || "").trim();
+
+      $("roomCodeDisplay").textContent = roomCode || "—";
+      $("roomStatus").classList.toggle("visible", Boolean(roomCode));
+      $("roomCodeInput").value = roomCode;
+      setConnection(Boolean(roomCode), roomCode ? "Room connected" : "Not connected");
+
+      if (roomCode) {
+        setMessage("You're in your shared room. Find a song to start listening ♡", "success");
+        startPolling();
+      }
+    }
+
+    async function createRoom() {
+      const button = $("createRoomBtn");
+      setBusy(button, true, "Creating…");
+
+      try {
+        const data = await api("createRoom");
+        const result = unwrap(data);
+        const code = result?.roomCode || result?.room?.roomCode || result?.code;
+
+        if (!code) {
+          throw new Error("The server did not return a room code.");
+        }
+
+        showRoom(code);
+        await refreshRoom();
+        setMessage("Your room is ready! Share the code with your partner ♡", "success");
+      } catch (error) {
+        setMessage(error.message || "Could not create a room.", "error");
+      } finally {
+        setBusy(button, false);
+      }
+    }
+
+    async function joinRoom() {
+      const button = $("joinRoomBtn");
+      const code = $("roomCodeInput").value.trim();
+
+      if (!code) {
+        setMessage("Enter a room code first.");
+        $("roomCodeInput").focus();
         return;
       }
 
-      $("searchResults").innerHTML = data.tracks.map((track, index) =>
-        songHtml(track, "＋ Add", "add", index)
-      ).join("");
+      setBusy(button, true, "Joining…");
 
-      $("searchResults")._tracks = data.tracks;
-    } catch (error) {
-      $("searchResults").innerHTML =
-        `<p class="empty">${escapeHtml(error.message)}</p>`;
-    }
-  }
-
-  async function addTrack(track) {
-    if (!roomCode) {
-      status("Create or join a room before adding songs.");
-      return;
-    }
-
-    try {
-      await api("addTrack", { track });
-      status("Song added to your shared queue!");
-      await refreshRoom();
-    } catch (error) {
-      status(error.message);
-    }
-  }
-
-  async function playTrack(track) {
-    if (!roomCode) return;
-
-    try {
-      applyingRemoteState = true;
-      player.src = track.previewUrl;
-      player.load();
-      currentTrackId = track.trackId;
-      renderNowPlaying(track);
-      await api("setPlayback", {
-        currentTrack: track,
-        isPlaying: true,
-        positionSeconds: 0
-      });
-      lastRemotePosition = 0;
-      lastRemotePlaying = true;
       try {
-        await player.play();
-      } catch {
-        status("Song selected. Tap Play to start the preview.");
+        const data = await api("joinRoom", { roomCode: code });
+        const result = unwrap(data);
+
+        if (result?.success === false) {
+          throw new Error(result?.message || "Could not join this room.");
+        }
+
+        showRoom(result?.roomCode || result?.room?.roomCode || result?.code || code);
+        await refreshRoom();
+        setMessage("Connected to your shared music room ♡", "success");
+      } catch (error) {
+        setMessage(error.message || "Could not join the room.", "error");
+      } finally {
+        setBusy(button, false);
       }
-      applyingRemoteState = false;
-    } catch (error) {
-      applyingRemoteState = false;
-      status(error.message);
     }
-  }
 
-  async function refreshRoom() {
-    if (!roomCode || pollBusy) return;
+    async function copyRoomCode() {
+      if (!roomCode) return;
 
-    pollBusy = true;
+      try {
+        await navigator.clipboard.writeText(roomCode);
+        setMessage("Room code copied. Send it privately to your partner.", "success");
+      } catch {
+        $("roomCodeInput").value = roomCode;
+        $("roomCodeInput").focus();
+        $("roomCodeInput").select();
 
-    try {
-      const data = await api("getRoom");
-      queue = data.queue || [];
-      renderQueue();
-
-      const room = data.room || {};
-      const track = room.current_track;
-
-      if (track) {
-        renderNowPlaying(track);
-
-        if (currentTrackId !== track.trackId) {
-          currentTrackId = track.trackId;
-          player.src = track.previewUrl;
-          player.load();
+        try {
+          document.execCommand("copy");
+          setMessage("Room code copied.", "success");
+        } catch {
+          setMessage("Please select and copy the room code manually.");
         }
+      }
+    }
 
-        const remotePosition = Number(room.position_seconds) || 0;
-        lastRemotePosition = remotePosition;
-        lastRemotePlaying = !!room.is_playing;
+    function renderSearchResults(tracks) {
+      const container = $("searchResults");
 
-        if (
-          Number.isFinite(player.duration) &&
-          Math.abs(player.currentTime - remotePosition) > 5
-        ) {
-          applyingRemoteState = true;
-          player.currentTime = remotePosition;
-          applyingRemoteState = false;
-        }
+      if (!tracks.length) {
+        container.innerHTML = '<div class="empty">No songs found. Try another song or artist.</div>';
+        return;
+      }
 
-        if (room.is_playing && player.paused) {
-          player.play().catch(() => {
-            status("Room is playing. Tap Play on this phone to listen.");
-          });
-        } else if (!room.is_playing && !player.paused) {
-          player.pause();
+      container.innerHTML = tracks.map((rawTrack, index) => {
+        const track = normaliseTrack(rawTrack);
+        if (!track) return "";
+
+        return `
+          <div class="song">
+            <img class="artwork"
+              src="${escapeHTML(track.artworkUrl)}"
+              alt=""
+              loading="lazy"
+              onerror="this.onerror=null;this.src='/icon.svg'">
+            <div class="song-info">
+              <div class="song-title">${escapeHTML(track.trackName)}</div>
+              <div class="song-artist">${escapeHTML(track.artistName)}</div>
+            </div>
+            <button class="btn secondary" data-add-index="${index}"
+              aria-label="Add ${escapeHTML(track.trackName)}">＋ Add</button>
+          </div>`;
+      }).join("");
+
+      container.querySelectorAll("[data-add-index]").forEach(button => {
+        button.addEventListener("click", async () => {
+          const track = normaliseTrack(searchTracks[Number(button.dataset.addIndex)]);
+          if (!track) return;
+
+          if (!roomCode) {
+            setMessage("Create or join a room before adding songs.");
+            $("roomCodeInput").focus();
+            return;
+          }
+
+          if (!track.trackId) {
+            setMessage("This song is missing its track ID.", "error");
+            return;
+          }
+
+          setBusy(button, true, "Adding…");
+
+          try {
+            await api("addTrack", { track });
+            setMessage("Added to your shared queue ♡", "success");
+            await refreshRoom();
+          } catch (error) {
+            setMessage(error.message || "Could not add this song.", "error");
+          } finally {
+            setBusy(button, false);
+          }
+        });
+      });
+    }
+    
+    async function searchMusic(event) {
+      if (event) event.preventDefault();
+
+      const query = $("searchInput").value.trim();
+      if (!query) {
+        setSearchMessage("Type a song or artist name first.");
+        $("searchInput").focus();
+        return;
+      }
+
+      const button = $("searchBtn");
+      setBusy(button, true, "Searching…");
+      setSearchMessage("Looking for songs…");
+      $("searchResults").innerHTML = "";
+
+      try {
+        const data = await api("search", { query });
+        searchTracks = extractTracks(data);
+        renderSearchResults(searchTracks);
+        setSearchMessage(
+          searchTracks.length
+            ? "Found " + searchTracks.length + " result(s)."
+            : "No results found. Try a different search."
+        );
+      } catch (error) {
+        $("searchResults").innerHTML =
+          '<div class="empty">Could not load songs. Please try again.</div>';
+        setSearchMessage(error.message || "Search failed.", "error");
+      } finally {
+        setBusy(button, false);
+      }
+    }
+
+    function renderQueue(tracks) {
+      const container = $("queueList");
+
+      const signature = tracks.map(item =>
+        getTrackId(item.track || item) + ":" + (item.id || "")
+      ).join("|");
+
+      if (signature === lastQueueSignature) return;
+      lastQueueSignature = signature;
+
+      if (!tracks.length) {
+        container.innerHTML = '<div class="empty">Your shared playlist is empty.<br>Search for a song and tap ＋ Add.</div>';
+        return;
+      }
+
+      container.innerHTML = tracks.map((item, index) => {
+        const track = normaliseTrack(item.track || item);
+        if (!track) return "";
+
+        const active = currentTrack && getTrackId(currentTrack) === getTrackId(track);
+
+        return `
+          <div class="song">
+            <img class="artwork"
+              src="${escapeHTML(track.artworkUrl)}"
+              alt=""
+              loading="lazy"
+              onerror="this.onerror=null;this.src='/icon.svg'">
+            <div class="song-info">
+              <div class="song-title">${escapeHTML(track.trackName)}</div>
+              <div class="song-artist">${active ? "♫ Now playing" : escapeHTML(track.artistName)}</div>
+            </div>
+            <button class="btn ${active ? "" : "secondary"}"
+              data-play-index="${index}">${active ? "Playing" : "▶ Play"}</button>
+          </div>`;
+      }).join("");
+
+      container.querySelectorAll("[data-play-index]").forEach(button => {
+        button.addEventListener("click", async () => {
+          const item = queueTracks[Number(button.dataset.playIndex)];
+          const track = normaliseTrack(item?.track || item);
+          if (track) await playTrack(track);
+        });
+      });
+    }
+
+    function updateNowPlaying(track) {
+      if (!track) return;
+
+      $("trackName").textContent = getTrackTitle(track);
+      $("artistName").textContent = getTrackArtist(track);
+      $("coverArt").src = getTrackArtwork(track);
+      $("miniTitle").textContent = getTrackTitle(track);
+      $("miniArtist").textContent = getTrackArtist(track);
+      $("miniArt").src = getTrackArtwork(track);
+      $("miniPlayer").classList.add("visible");
+
+      $("coverArt").onerror = () => {
+        $("coverArt").onerror = null;
+        $("coverArt").src = "/icon.svg";
+      };
+
+      $("miniArt").onerror = () => {
+        $("miniArt").onerror = null;
+        $("miniArt").src = "/icon.svg";
+      };
+    }
+
+    async function playTrack(track, fromRemote = false) {
+      if (!track) return;
+
+      const normalTrack = normaliseTrack(track);
+      if (!normalTrack) return;
+
+      if (!normalTrack.previewUrl) {
+        setMessage("This track has no playable stream URL.", "error");
+        return;
+      }
+
+      const trackId = getTrackId(normalTrack);
+      const isNewTrack = trackId !== lastRemoteTrackId;
+
+      currentTrack = normalTrack;
+      lastRemoteTrackId = trackId;
+      updateNowPlaying(normalTrack);
+
+      if (isNewTrack || audio.src !== normalTrack.previewUrl) {
+        audio.src = normalTrack.previewUrl;
+        audio.load();
+      }
+
+      try {
+        await audio.play();
+        $("playPauseBtn").textContent = "Ⅱ";
+        $("playPauseBtn").setAttribute("aria-label", "Pause");
+        $("miniPlayBtn").textContent = "Ⅱ";
+        setMessage(fromRemote ? "Playing the shared song." : "Playing your song ♡", "success");
+      } catch {
+        $("playPauseBtn").textContent = "▶";
+        $("playPauseBtn").setAttribute("aria-label", "Play");
+        $("miniPlayBtn").textContent = "▶";
+        setMessage("Tap Play to start the music. Your browser may require a direct tap.", "error");
+      }
+
+      if (!fromRemote && roomCode) {
+        await sendPlaybackState(true);
+      }
+
+      renderQueue(queueTracks);
+    }
+
+    async function togglePlayback() {
+      if (!currentTrack && queueTracks.length) {
+        const first = queueTracks[0];
+        await playTrack(normaliseTrack(first.track || first));
+        return;
+      }
+
+      if (!currentTrack) {
+        setMessage("Search for a song and add it to your queue.");
+        return;
+      }
+
+      if (audio.paused) {
+        try {
+          await audio.play();
+          if (roomCode) await sendPlaybackState(true);
+        } catch {
+          setMessage("Tap Play again to allow audio playback.", "error");
         }
       } else {
-        renderNowPlaying(null);
+        audio.pause();
+        if (roomCode) await sendPlaybackState(false);
       }
-    } catch (error) {
-      status(error.message);
-    } finally {
-      pollBusy = false;
     }
-  }
 
-  $("createBtn").addEventListener("click", createRoom);
-  $("joinBtn").addEventListener("click", joinRoom);
-  $("copyBtn").addEventListener("click", async () => {
-    if (!roomCode) return;
-    try {
-      await navigator.clipboard.writeText(roomCode);
-      status("Room code copied. Send it to your girlfriend.");
-    } catch {
-      status("Your room code is " + roomCode);
+    async function sendPlaybackState(playing) {
+      if (!roomCode || !currentTrack) return;
+
+      try {
+        await api("setPlayback", {
+          currentTrack,
+          isPlaying: Boolean(playing),
+          positionSeconds: Number(audio.currentTime || 0)
+        });
+      } catch (error) {
+        setMessage("Playback is local, but shared sync failed: " + error.message, "error");
+      }
     }
-  });
 
-  $("searchForm").addEventListener("submit", searchSongs);
+    async function changeTrack(direction) {
+      if (!queueTracks.length) {
+        setMessage("Add some songs to your shared queue first.");
+        return;
+      }
 
-  $("searchResults").addEventListener("click", event => {
-    const button = event.target.closest("button[data-action]");
-    if (!button) return;
+      let index = queueTracks.findIndex(item =>
+        getTrackId(item.track || item) === getTrackId(currentTrack)
+      );
 
-    const tracks = $("searchResults")._tracks || [];
-    const track = tracks[Number(button.dataset.index)];
+      if (index < 0) index = direction > 0 ? -1 : 0;
 
-    if (track) addTrack(track);
-  });
+      let nextIndex = index + direction;
 
-  $("queueList").addEventListener("click", event => {
-    const button = event.target.closest("button[data-action='play']");
-    if (!button) return;
+      if (nextIndex < 0) nextIndex = queueTracks.length - 1;
+      if (nextIndex >= queueTracks.length) nextIndex = 0;
 
-    const item = queue[Number(button.dataset.index)];
-    const track = getTrackFromQueue(item);
+      const item = queueTracks[nextIndex];
+      await playTrack(normaliseTrack(item.track || item));
+    }
 
-    if (track) playTrack(track);
-  });
+    function getRoomObject(data) {
+      const result = unwrap(data);
+      return result?.room || result?.state || result;
+    }
 
-  player.addEventListener("play", async () => {
-    if (applyingRemoteState || !roomCode) return;
+    function getQueueFromRoom(room) {
+      if (Array.isArray(room?.queue)) return room.queue;
+      if (Array.isArray(room?.tracks)) return room.tracks;
+      if (Array.isArray(room?.music_queue)) return room.music_queue;
+      return [];
+    }
 
-    try {
-      await api("setPlayback", {
-        isPlaying: true,
-        positionSeconds: player.currentTime || 0
+    async function refreshRoom() {
+      if (!roomCode) return;
+
+      try {
+        const data = await api("getRoom");
+        const room = getRoomObject(data);
+
+        if (!room || typeof room !== "object") return;
+
+        const rawQueue = getQueueFromRoom(room);
+        queueTracks = rawQueue;
+        renderQueue(queueTracks);
+
+        const remoteTrack = normaliseTrack(
+          room.currentTrack || room.current_track || room.track
+        );
+
+        const remotePlaying = Boolean(
+          room.isPlaying ?? room.is_playing ?? room.playing ?? false
+        );
+
+        const remotePosition = Number(
+          room.positionSeconds ??
+          room.position_seconds ??
+          room.position ??
+          0
+        );
+
+        const updatedAt = room.updatedAt || room.updated_at || "";
+        const trackId = getTrackId(remoteTrack);
+
+        if (remoteTrack && trackId) {
+          const newTrack = trackId !== lastRemoteTrackId;
+
+          if (newTrack) {
+            currentTrack = remoteTrack;
+            lastRemoteTrackId = trackId;
+            updateNowPlaying(remoteTrack);
+
+            if (remoteTrack.previewUrl) {
+              audio.src = remoteTrack.previewUrl;
+              audio.load();
+            }
+          }
+
+          if (updatedAt && updatedAt !== lastUpdatedAt) {
+            lastUpdatedAt = updatedAt;
+            currentPositionAtSync = Math.max(0, remotePosition);
+            currentSyncTime = Date.now();
+          }
+
+          remoteIsPlaying = remotePlaying;
+
+          if (remoteTrack.previewUrl && audio.src) {
+            let targetPosition = remotePosition;
+
+            if (remotePlaying && updatedAt) {
+              const elapsed = Math.max(
+                0,
+                (Date.now() - Date.parse(updatedAt)) / 1000
+              );
+
+              if (Number.isFinite(elapsed) && elapsed < 3600) {
+                targetPosition = remotePosition + elapsed;
+              }
+            }
+
+            if (!Number.isFinite(targetPosition) || targetPosition < 0) {
+              targetPosition = 0;
+            }
+
+            if (newTrack && targetPosition > 0) {
+              try {
+                audio.currentTime = targetPosition;
+              } catch {}
+            } else if (!isSeeking && !audio.paused) {
+              const drift = Math.abs(audio.currentTime - targetPosition);
+
+              if (drift > 5 && Number.isFinite(targetPosition)) {
+                try {
+                  audio.currentTime = targetPosition;
+                } catch {}
+              }
+            }
+
+            if (remotePlaying && audio.paused) {
+              try {
+                await audio.play();
+              } catch {
+                setMessage("Your partner started the song. Tap Play to listen here.");
+              }
+            } else if (!remotePlaying && !audio.paused) {
+              audio.pause();
+            }
+
+            $("playPauseBtn").textContent = remotePlaying ? "Ⅱ" : "▶";
+            $("miniPlayBtn").textContent = remotePlaying ? "Ⅱ" : "▶";
+          }
+        }
+
+        setConnection(true, "Room connected");
+      } catch (error) {
+        setConnection(false, "Reconnecting…");
+      }
+    }
+
+    function startPolling() {
+      if (pollTimer) clearInterval(pollTimer);
+
+      refreshRoom();
+      pollTimer = setInterval(() => {
+        if (!document.hidden && roomCode) refreshRoom();
+      }, 5000);
+    }
+
+    audio.addEventListener("play", () => {
+      $("playPauseBtn").textContent = "Ⅱ";
+      $("playPauseBtn").setAttribute("aria-label", "Pause");
+      $("miniPlayBtn").textContent = "Ⅱ";
+    });
+
+    audio.addEventListener("pause", () => {
+      $("playPauseBtn").textContent = "▶";
+      $("playPauseBtn").setAttribute("aria-label", "Play");
+      $("miniPlayBtn").textContent = "▶";
+    });
+
+    audio.addEventListener("timeupdate", () => {
+      if (!isSeeking && Number.isFinite(audio.duration) && audio.duration > 0) {
+        $("progressBar").value = String((audio.currentTime / audio.duration) * 100);
+      }
+
+      $("currentTime").textContent = formatTime(audio.currentTime);
+      $("duration").textContent = formatTime(audio.duration);
+    });
+
+    audio.addEventListener("loadedmetadata", () => {
+      $("duration").textContent = formatTime(audio.duration);
+    });
+
+    audio.addEventListener("ended", () => {
+      changeTrack(1);
+    });
+
+    audio.addEventListener("error", () => {
+      if (currentTrack) {
+        setMessage("This stream could not be played. Try another track.", "error");
+      }
+    });
+
+    $("progressBar").addEventListener("input", () => {
+      isSeeking = true;
+    });
+
+    $("progressBar").addEventListener("change", async () => {
+      if (Number.isFinite(audio.duration) && audio.duration > 0) {
+        audio.currentTime = (Number($("progressBar").value) / 100) * audio.duration;
+        if (roomCode) await sendPlaybackState(!audio.paused);
+      }
+      isSeeking = false;
+    });
+
+    $("volumeBar").addEventListener("input", () => {
+      audio.volume = Number($("volumeBar").value);
+    });
+
+    audio.volume = Number($("volumeBar").value);
+
+    $("createRoomBtn").addEventListener("click", createRoom);
+    $("joinRoomBtn").addEventListener("click", joinRoom);
+    $("copyRoomBtn").addEventListener("click", copyRoomCode);
+    $("searchForm").addEventListener("submit", searchMusic);
+    $("playPauseBtn").addEventListener("click", togglePlayback);
+    $("miniPlayBtn").addEventListener("click", togglePlayback);
+    $("previousBtn").addEventListener("click", () => changeTrack(-1));
+    $("nextBtn").addEventListener("click", () => changeTrack(1));
+    $("refreshQueueBtn").addEventListener("click", refreshRoom);
+
+    $("roomCodeInput").addEventListener("keydown", event => {
+      if (event.key === "Enter") joinRoom();
+    });
+
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden && roomCode) refreshRoom();
+    });
+
+    if ("serviceWorker" in navigator && location.protocol === "https:") {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("/sw.js").catch(error => {
+          console.warn("Service worker registration failed:", error);
+        });
       });
-    } catch (error) {
-      status(error.message);
     }
-  });
 
-  player.addEventListener("pause", async () => {
-    if (applyingRemoteState || !roomCode) return;
+    const initialParams = new URLSearchParams(location.search);
+    const initialRoom = initialParams.get("room");
 
-    try {
-      await api("setPlayback", {
-        isPlaying: false,
-        positionSeconds: player.currentTime || 0
-      });
-    } catch (error) {
-      status(error.message);
+    if (initialRoom) {
+      $("roomCodeInput").value = initialRoom;
+      joinRoom();
     }
-  });
-
-  player.addEventListener("timeupdate", async () => {
-    if (
-      applyingRemoteState ||
-      !roomCode ||
-      !currentTrackId ||
-      Date.now() - lastPositionSent < 5000
-    ) return;
-
-    lastPositionSent = Date.now();
-
-    try {
-      await api("setPlayback", {
-        positionSeconds: player.currentTime || 0
-      });
-    } catch {}
-  });
-
-  setInterval(refreshRoom, 4000);
-})();
-</script>
+  </script>
 </body>
 </html>
