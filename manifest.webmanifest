@@ -1,12 +1,11 @@
 {
-  "id": "/",
-  "name": "Our Music",
+  "name": "Our Music \u2014 Shared Listening Room",
   "short_name": "Our Music",
-  "description": "A shared music room for two hearts.",
+  "description": "A little shared listening room for two hearts.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "orientation": "any",
+  "orientation": "portrait",
   "background_color": "#100d18",
   "theme_color": "#100d18",
   "icons": [
@@ -14,7 +13,7 @@
       "src": "/icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
-      "purpose": "any"
+      "purpose": "any maskable"
     }
   ]
 }
